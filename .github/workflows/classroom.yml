@@ -1,0 +1,73 @@
+name: Autograding Tests
+'on':
+- push
+- repository_dispatch
+permissions:
+  checks: write
+  actions: read
+  contents: read
+jobs:
+  run-autograding-tests:
+    runs-on: ubuntu-latest
+    if: github.actor != 'github-classroom[bot]'
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    - name: TypeScript Compiles
+      id: typescript-compiles
+      uses: classroom-resources/autograding-command-grader@v1
+      with:
+        test-name: TypeScript Compiles
+        setup-command: npm ci
+        command: npm run typecheck
+        timeout: 2
+        max-score: 10
+    - name: All Tests Pass
+      id: all-tests-pass
+      uses: classroom-resources/autograding-command-grader@v1
+      with:
+        test-name: All Tests Pass
+        setup-command: npm ci
+        command: npm run test:run
+        timeout: 5
+        max-score: 40
+    - name: Coverage Threshold
+      id: coverage-threshold
+      uses: classroom-resources/autograding-command-grader@v1
+      with:
+        test-name: Coverage Threshold
+        setup-command: npm ci
+        command: npm run test:coverage
+        timeout: 5
+        max-score: 25
+    - name: Required Files Exist
+      id: required-files-exist
+      uses: classroom-resources/autograding-command-grader@v1
+      with:
+        test-name: Required Files Exist
+        setup-command: ''
+        command: test -f src/components/TaskItem.tsx && test -f src/components/AddTaskForm.tsx
+          && test -f src/components/TaskList.tsx && test -f src/__tests__/TaskItem.test.tsx
+          && test -f src/__tests__/AddTaskForm.test.tsx && test -f src/__tests__/TaskList.test.tsx
+          && test -f src/__tests__/taskApi.test.ts
+        timeout: 1
+        max-score: 10
+    - name: README Present
+      id: readme-present
+      uses: classroom-resources/autograding-command-grader@v1
+      with:
+        test-name: README Present
+        setup-command: ''
+        command: test -f README.md && test $(wc -w < README.md) -ge 100
+        timeout: 1
+        max-score: 5
+    - name: Autograding Reporter
+      uses: classroom-resources/autograding-grading-reporter@v1
+      env:
+        TYPESCRIPT-COMPILES_RESULTS: "${{steps.typescript-compiles.outputs.result}}"
+        ALL-TESTS-PASS_RESULTS: "${{steps.all-tests-pass.outputs.result}}"
+        COVERAGE-THRESHOLD_RESULTS: "${{steps.coverage-threshold.outputs.result}}"
+        REQUIRED-FILES-EXIST_RESULTS: "${{steps.required-files-exist.outputs.result}}"
+        README-PRESENT_RESULTS: "${{steps.readme-present.outputs.result}}"
+      with:
+        runners: typescript-compiles,all-tests-pass,coverage-threshold,required-files-exist,readme-present
