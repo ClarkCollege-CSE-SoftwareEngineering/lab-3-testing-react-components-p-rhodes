@@ -14,27 +14,34 @@ export interface TaskItemProps {
 
 export function TaskItem({ task, onToggle, onDelete }: TaskItemProps) {
   return (
-    <input
-      type="checkbox"
-      id={`task-${task.id}`}
-      onChange={() => onToggle(task.id)}
-      aria-label={`Mark "${task.title}" as ${task.completed ? 'incomplete : 'complete'}`}
-    />
 
-      {task.title}
+    <div>
+      <input
+        type="checkbox"
+        id={`task-${task.id}`}
+        checked={task.completed}
+        onChange={() => onToggle(task.id)}
+        aria-label={`Mark "${task.title}" as ${task.completed ? 'incomplete' : 'complete'}`}
+      />
 
-    <button
-      onClick={() => onDelete(task.id)}
-      aria-label={`Delete "${task.title}"`}
-      style={{
-        background: '#dc3545',
-        color: 'white',
-        border: 'none',
-        padding: '4px 8px',
-        borderRadius: '4px',
-        cursor: 'pointer',
-      }}
-    >
-      Delete
+        {task.title}
+
+      <button
+        onClick={() => onDelete(task.id)}
+        aria-label={`Delete "${task.title}"`}
+        style={{
+          background: '#dc3545',
+          color: 'white',
+          border: 'none',
+          padding: '4px 8px',
+          borderRadius: '4px',
+          cursor: 'pointer',
+        }}
+      >
+        Delete
+        </button>
+      </div>
+
+
   );
 }
