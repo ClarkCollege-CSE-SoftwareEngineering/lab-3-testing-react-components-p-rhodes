@@ -82,7 +82,7 @@ npm init -y
 npm install react react-dom
 npm install -D typescript vitest @vitest/coverage-v8 jsdom
 npm install -D @testing-library/react @testing-library/jest-dom @testing-library/user-event
-npm install -D @types/react @types/react-dom
+npm install -D @types/react @types/react-dom @types/node
 ```
 
 ### Step 1.3: Create TypeScript Configuration
@@ -181,8 +181,6 @@ We'll build a simple `TaskItem` component and test it following Testing Library 
 Create `src/components/TaskItem.tsx`:
 
 ```tsx
-import React from 'react';
-
 export interface Task {
   id: string;
   title: string;
@@ -197,7 +195,17 @@ export interface TaskItemProps {
 
 export function TaskItem({ task, onToggle, onDelete }: TaskItemProps) {
   return (
-
+    <li
+      role="listitem"
+      aria-label={`Task: ${task.title}`}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        padding: '8px',
+        borderBottom: '1px solid #eee',
+      }}
+    >
       <input
         type="checkbox"
         id={`task-${task.id}`}
@@ -205,9 +213,16 @@ export function TaskItem({ task, onToggle, onDelete }: TaskItemProps) {
         onChange={() => onToggle(task.id)}
         aria-label={`Mark "${task.title}" as ${task.completed ? 'incomplete' : 'complete'}`}
       />
-
+      <label
+        htmlFor={`task-${task.id}`}
+        style={{
+          flex: 1,
+          textDecoration: task.completed ? 'line-through' : 'none',
+          color: task.completed ? '#888' : 'inherit',
+        }}
+      >
         {task.title}
-
+      </label>
       <button
         onClick={() => onDelete(task.id)}
         aria-label={`Delete "${task.title}"`}
@@ -221,8 +236,8 @@ export function TaskItem({ task, onToggle, onDelete }: TaskItemProps) {
         }}
       >
         Delete
-
-
+      </button>
+    </li>
   );
 }
 ```
@@ -232,89 +247,101 @@ export function TaskItem({ task, onToggle, onDelete }: TaskItemProps) {
 Create `src/__tests__/TaskItem.test.tsx`:
 
 ```tsx
-import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { TaskItem, Task } from "../components/TaskItem";
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { TaskItem, Task } from '../components/TaskItem';
 
-describe("TaskItem", () => {
+describe('TaskItem', () => {
   // Helper to create a test task
-  const createTask = (overrides: Partial = {}): Task => ({
-    id: "1",
-    title: "Test Task",
+  const createTask = (overrides: Partial<Task> = {}): Task => ({
+    id: '1',
+    title: 'Test Task',
     completed: false,
     ...overrides,
   });
 
-  describe("rendering", () => {
-    it("displays the task title", () => {
-      const task = createTask({ title: "Buy groceries" });
-      render();
+  describe('rendering', () => {
+    it('displays the task title', () => {
+      const task = createTask({ title: 'Buy groceries' });
+      render(
+        <TaskItem task={task} onToggle={vi.fn()} onDelete={vi.fn()} />
+      );
 
       // Using getByText - appropriate here because the title IS the content users see
-      expect(screen.getByText("Buy groceries")).toBeInTheDocument();
+      expect(screen.getByText('Buy groceries')).toBeInTheDocument();
     });
 
-    it("shows checkbox as unchecked for incomplete tasks", () => {
+    it('shows checkbox as unchecked for incomplete tasks', () => {
       const task = createTask({ completed: false });
-      render();
+      render(
+        <TaskItem task={task} onToggle={vi.fn()} onDelete={vi.fn()} />
+      );
 
       // Using getByRole with name - the preferred query method
-      const checkbox = screen.getByRole("checkbox", {
+      const checkbox = screen.getByRole('checkbox', {
         name: /mark "test task" as complete/i,
       });
       expect(checkbox).not.toBeChecked();
     });
 
-    it("shows checkbox as checked for completed tasks", () => {
+    it('shows checkbox as checked for completed tasks', () => {
       const task = createTask({ completed: true });
-      render();
+      render(
+        <TaskItem task={task} onToggle={vi.fn()} onDelete={vi.fn()} />
+      );
 
-      const checkbox = screen.getByRole("checkbox", {
+      const checkbox = screen.getByRole('checkbox', {
         name: /mark "test task" as incomplete/i,
       });
       expect(checkbox).toBeChecked();
     });
 
-    it("applies strikethrough style to completed task title", () => {
-      const task = createTask({ completed: true, title: "Completed task" });
-      render();
+    it('applies strikethrough style to completed task title', () => {
+      const task = createTask({ completed: true, title: 'Completed task' });
+      render(
+        <TaskItem task={task} onToggle={vi.fn()} onDelete={vi.fn()} />
+      );
 
-      const label = screen.getByText("Completed task");
-      expect(label).toHaveStyle({ textDecoration: "line-through" });
+      const label = screen.getByText('Completed task');
+      expect(label).toHaveStyle({ textDecoration: 'line-through' });
     });
   });
 
-  describe("interactions", () => {
-    it("calls onToggle with task id when checkbox is clicked", async () => {
+  describe('interactions', () => {
+    it('calls onToggle with task id when checkbox is clicked', async () => {
       const user = userEvent.setup();
       const onToggle = vi.fn();
-      const task = createTask({ id: "task-123" });
+      const task = createTask({ id: 'task-123' });
 
-      render();
+      render(
+        <TaskItem task={task} onToggle={onToggle} onDelete={vi.fn()} />
+      );
 
-      const checkbox = screen.getByRole("checkbox");
+      const checkbox = screen.getByRole('checkbox');
       await user.click(checkbox);
 
       expect(onToggle).toHaveBeenCalledTimes(1);
-      expect(onToggle).toHaveBeenCalledWith("task-123");
+      expect(onToggle).toHaveBeenCalledWith('task-123');
     });
 
-    it("calls onDelete with task id when delete button is clicked", async () => {
+    it('calls onDelete with task id when delete button is clicked', async () => {
       const user = userEvent.setup();
       const onDelete = vi.fn();
-      const task = createTask({ id: "task-456", title: "Task to delete" });
+      const task = createTask({ id: 'task-456', title: 'Task to delete' });
 
-      render();
+      render(
+        <TaskItem task={task} onToggle={vi.fn()} onDelete={onDelete} />
+      );
 
       // Using getByRole with accessible name
-      const deleteButton = screen.getByRole("button", {
+      const deleteButton = screen.getByRole('button', {
         name: /delete "task to delete"/i,
       });
       await user.click(deleteButton);
 
       expect(onDelete).toHaveBeenCalledTimes(1);
-      expect(onDelete).toHaveBeenCalledWith("task-456");
+      expect(onDelete).toHaveBeenCalledWith('task-456');
     });
   });
 });
@@ -343,7 +370,7 @@ export interface AddTaskFormProps {
 
 export function AddTaskForm({ onAdd }: AddTaskFormProps) {
   const [title, setTitle] = useState('');
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -366,9 +393,9 @@ export function AddTaskForm({ onAdd }: AddTaskFormProps) {
   };
 
   return (
-
-
-        Task Title
+    <form onSubmit={handleSubmit} aria-label="Add new task">
+      <div style={{ marginBottom: '8px' }}>
+        <label htmlFor="task-title">Task Title</label>
         <input
           type="text"
           id="task-title"
@@ -389,16 +416,30 @@ export function AddTaskForm({ onAdd }: AddTaskFormProps) {
             borderRadius: '4px',
           }}
         />
-
+      </div>
       {error && (
-
+        <p
+          id="task-error"
+          role="alert"
+          style={{ color: '#dc3545', margin: '0 0 8px 0' }}
+        >
           {error}
-
+        </p>
       )}
-
+      <button
+        type="submit"
+        style={{
+          background: '#007bff',
+          color: 'white',
+          border: 'none',
+          padding: '8px 16px',
+          borderRadius: '4px',
+          cursor: 'pointer',
+        }}
+      >
         Add Task
-
-
+      </button>
+    </form>
   );
 }
 ```
@@ -408,120 +449,116 @@ export function AddTaskForm({ onAdd }: AddTaskFormProps) {
 Create `src/__tests__/AddTaskForm.test.tsx`:
 
 ```tsx
-import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { AddTaskForm } from "../components/AddTaskForm";
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { AddTaskForm } from '../components/AddTaskForm';
 
-describe("AddTaskForm", () => {
-  describe("rendering", () => {
-    it("renders a form with label, input, and button", () => {
-      render();
+describe('AddTaskForm', () => {
+  describe('rendering', () => {
+    it('renders a form with label, input, and button', () => {
+      render(<AddTaskForm onAdd={vi.fn()} />);
 
       // Using getByLabelText - the preferred query for form fields
       expect(screen.getByLabelText(/task title/i)).toBeInTheDocument();
-      expect(
-        screen.getByRole("button", { name: /add task/i }),
-      ).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /add task/i })).toBeInTheDocument();
     });
 
-    it("input is initially empty", () => {
-      render();
+    it('input is initially empty', () => {
+      render(<AddTaskForm onAdd={vi.fn()} />);
 
       const input = screen.getByLabelText(/task title/i);
-      expect(input).toHaveValue("");
+      expect(input).toHaveValue('');
     });
   });
 
-  describe("form submission", () => {
-    it("calls onAdd with trimmed title on valid submission", async () => {
+  describe('form submission', () => {
+    it('calls onAdd with trimmed title on valid submission', async () => {
       const user = userEvent.setup();
       const onAdd = vi.fn();
-      render();
+      render(<AddTaskForm onAdd={onAdd} />);
 
       const input = screen.getByLabelText(/task title/i);
-      const button = screen.getByRole("button", { name: /add task/i });
+      const button = screen.getByRole('button', { name: /add task/i });
 
-      await user.type(input, "  Buy groceries  ");
+      await user.type(input, '  Buy groceries  ');
       await user.click(button);
 
-      expect(onAdd).toHaveBeenCalledWith("Buy groceries");
+      expect(onAdd).toHaveBeenCalledWith('Buy groceries');
     });
 
-    it("clears input after successful submission", async () => {
+    it('clears input after successful submission', async () => {
       const user = userEvent.setup();
-      render();
+      render(<AddTaskForm onAdd={vi.fn()} />);
 
       const input = screen.getByLabelText(/task title/i);
 
-      await user.type(input, "New task");
-      await user.click(screen.getByRole("button", { name: /add task/i }));
+      await user.type(input, 'New task');
+      await user.click(screen.getByRole('button', { name: /add task/i }));
 
-      expect(input).toHaveValue("");
+      expect(input).toHaveValue('');
     });
 
-    it("allows submission with Enter key", async () => {
+    it('allows submission with Enter key', async () => {
       const user = userEvent.setup();
       const onAdd = vi.fn();
-      render();
+      render(<AddTaskForm onAdd={onAdd} />);
 
       const input = screen.getByLabelText(/task title/i);
-      await user.type(input, "Task via Enter{Enter}");
+      await user.type(input, 'Task via Enter{Enter}');
 
-      expect(onAdd).toHaveBeenCalledWith("Task via Enter");
+      expect(onAdd).toHaveBeenCalledWith('Task via Enter');
     });
   });
 
-  describe("validation", () => {
-    it("shows error when submitting empty title", async () => {
+  describe('validation', () => {
+    it('shows error when submitting empty title', async () => {
       const user = userEvent.setup();
       const onAdd = vi.fn();
-      render();
+      render(<AddTaskForm onAdd={onAdd} />);
 
-      await user.click(screen.getByRole("button", { name: /add task/i }));
+      await user.click(screen.getByRole('button', { name: /add task/i }));
 
       // Using getByRole('alert') - semantic query for error messages
-      expect(screen.getByRole("alert")).toHaveTextContent(/required/i);
+      expect(screen.getByRole('alert')).toHaveTextContent(/required/i);
       expect(onAdd).not.toHaveBeenCalled();
     });
 
-    it("shows error when title is less than 3 characters", async () => {
+    it('shows error when title is less than 3 characters', async () => {
       const user = userEvent.setup();
       const onAdd = vi.fn();
-      render();
+      render(<AddTaskForm onAdd={onAdd} />);
 
-      await user.type(screen.getByLabelText(/task title/i), "ab");
-      await user.click(screen.getByRole("button", { name: /add task/i }));
+      await user.type(screen.getByLabelText(/task title/i), 'ab');
+      await user.click(screen.getByRole('button', { name: /add task/i }));
 
-      expect(screen.getByRole("alert")).toHaveTextContent(
-        /at least 3 characters/i,
-      );
+      expect(screen.getByRole('alert')).toHaveTextContent(/at least 3 characters/i);
       expect(onAdd).not.toHaveBeenCalled();
     });
 
-    it("clears error when user starts typing", async () => {
+    it('clears error when user starts typing', async () => {
       const user = userEvent.setup();
-      render();
+      render(<AddTaskForm onAdd={vi.fn()} />);
 
       // Trigger an error
-      await user.click(screen.getByRole("button", { name: /add task/i }));
-      expect(screen.getByRole("alert")).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: /add task/i }));
+      expect(screen.getByRole('alert')).toBeInTheDocument();
 
       // Start typing - error should clear
-      await user.type(screen.getByLabelText(/task title/i), "a");
+      await user.type(screen.getByLabelText(/task title/i), 'a');
 
       // queryBy returns null instead of throwing
-      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     });
 
-    it("marks input as invalid when there is an error", async () => {
+    it('marks input as invalid when there is an error', async () => {
       const user = userEvent.setup();
-      render();
+      render(<AddTaskForm onAdd={vi.fn()} />);
 
-      await user.click(screen.getByRole("button", { name: /add task/i }));
+      await user.click(screen.getByRole('button', { name: /add task/i }));
 
       const input = screen.getByLabelText(/task title/i);
-      expect(input).toHaveAttribute("aria-invalid", "true");
+      expect(input).toHaveAttribute('aria-invalid', 'true');
     });
   });
 });
@@ -552,45 +589,45 @@ export interface CreateTaskData {
   title: string;
 }
 
-const API_BASE = "/api/tasks";
+const API_BASE = '/api/tasks';
 
-export async function fetchTasks(): Promise {
+export async function fetchTasks(): Promise<Task[]> {
   const response = await fetch(API_BASE);
   if (!response.ok) {
-    throw new Error("Failed to fetch tasks");
+    throw new Error('Failed to fetch tasks');
   }
   return response.json();
 }
 
-export async function createTask(data: CreateTaskData): Promise {
+export async function createTask(data: CreateTaskData): Promise<Task> {
   const response = await fetch(API_BASE, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
   if (!response.ok) {
-    throw new Error("Failed to create task");
+    throw new Error('Failed to create task');
   }
   return response.json();
 }
 
-export async function deleteTask(id: string): Promise {
+export async function deleteTask(id: string): Promise<void> {
   const response = await fetch(`${API_BASE}/${id}`, {
-    method: "DELETE",
+    method: 'DELETE',
   });
   if (!response.ok) {
-    throw new Error("Failed to delete task");
+    throw new Error('Failed to delete task');
   }
 }
 
-export async function toggleTask(id: string, completed: boolean): Promise {
+export async function toggleTask(id: string, completed: boolean): Promise<Task> {
   const response = await fetch(`${API_BASE}/${id}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ completed }),
   });
   if (!response.ok) {
-    throw new Error("Failed to update task");
+    throw new Error('Failed to update task');
   }
   return response.json();
 }
@@ -601,15 +638,15 @@ export async function toggleTask(id: string, completed: boolean): Promise {
 Create `src/components/TaskList.tsx`:
 
 ```tsx
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { TaskItem } from './TaskItem';
 import { AddTaskForm } from './AddTaskForm';
 import * as taskApi from '../api/taskApi';
 
 export function TaskList() {
-  const [tasks, setTasks] = useState([]);
+  const [tasks, setTasks] = useState<taskApi.Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadTasks();
@@ -661,31 +698,36 @@ export function TaskList() {
   }
 
   if (isLoading) {
-    return Loading tasks...;
+    return <p role="status">Loading tasks...</p>;
   }
 
   return (
-
-      Task Manager
+    <div>
+      <h1>Task Manager</h1>
 
       {error && (
-
+        <p role="alert" style={{ color: '#dc3545' }}>
           {error}
-
+        </p>
       )}
 
-
+      <AddTaskForm onAdd={handleAdd} />
 
       {tasks.length === 0 ? (
-        No tasks yet. Add one above!
+        <p>No tasks yet. Add one above!</p>
       ) : (
-
+        <ul role="list" style={{ listStyle: 'none', padding: 0 }}>
           {tasks.map((task) => (
-
+            <TaskItem
+              key={task.id}
+              task={task}
+              onToggle={handleToggle}
+              onDelete={handleDelete}
+            />
           ))}
-
+        </ul>
       )}
-
+    </div>
   );
 }
 ```
@@ -695,122 +737,120 @@ export function TaskList() {
 Create `src/__tests__/TaskList.test.tsx`:
 
 ```tsx
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { TaskList } from "../components/TaskList";
-import * as taskApi from "../api/taskApi";
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { TaskList } from '../components/TaskList';
+import * as taskApi from '../api/taskApi';
 
 // Mock the entire API module
-vi.mock("../api/taskApi");
+vi.mock('../api/taskApi');
 
 // Type the mocked module
 const mockedTaskApi = vi.mocked(taskApi);
 
-describe("TaskList", () => {
+describe('TaskList', () => {
   beforeEach(() => {
     // Reset all mocks before each test
     vi.resetAllMocks();
   });
 
-  describe("loading state", () => {
-    it("shows loading message while fetching tasks", () => {
+  describe('loading state', () => {
+    it('shows loading message while fetching tasks', () => {
       // Mock fetchTasks to never resolve during this test
-      mockedTaskApi.fetchTasks.mockImplementation(() => new Promise(() => {}));
+      mockedTaskApi.fetchTasks.mockImplementation(
+        () => new Promise(() => {})
+      );
 
-      render();
+      render(<TaskList />);
 
-      expect(screen.getByRole("status")).toHaveTextContent(/loading/i);
+      expect(screen.getByRole('status')).toHaveTextContent(/loading/i);
     });
   });
 
-  describe("displaying tasks", () => {
-    it("renders fetched tasks", async () => {
+  describe('displaying tasks', () => {
+    it('renders fetched tasks', async () => {
       mockedTaskApi.fetchTasks.mockResolvedValue([
-        { id: "1", title: "First task", completed: false },
-        { id: "2", title: "Second task", completed: true },
+        { id: '1', title: 'First task', completed: false },
+        { id: '2', title: 'Second task', completed: true },
       ]);
 
-      render();
+      render(<TaskList />);
 
       // Using findBy for async - waits for elements to appear
-      expect(await screen.findByText("First task")).toBeInTheDocument();
-      expect(await screen.findByText("Second task")).toBeInTheDocument();
+      expect(await screen.findByText('First task')).toBeInTheDocument();
+      expect(await screen.findByText('Second task')).toBeInTheDocument();
     });
 
-    it("shows empty state when no tasks exist", async () => {
+    it('shows empty state when no tasks exist', async () => {
       mockedTaskApi.fetchTasks.mockResolvedValue([]);
 
-      render();
+      render(<TaskList />);
 
       expect(await screen.findByText(/no tasks yet/i)).toBeInTheDocument();
     });
 
-    it("shows error message when fetch fails", async () => {
-      mockedTaskApi.fetchTasks.mockRejectedValue(new Error("Network error"));
+    it('shows error message when fetch fails', async () => {
+      mockedTaskApi.fetchTasks.mockRejectedValue(new Error('Network error'));
 
-      render();
+      render(<TaskList />);
 
-      expect(await screen.findByRole("alert")).toHaveTextContent(
-        /failed to load/i,
-      );
+      expect(await screen.findByRole('alert')).toHaveTextContent(/failed to load/i);
     });
   });
 
-  describe("adding tasks", () => {
-    it("adds new task via the form", async () => {
+  describe('adding tasks', () => {
+    it('adds new task via the form', async () => {
       const user = userEvent.setup();
 
       mockedTaskApi.fetchTasks.mockResolvedValue([]);
       mockedTaskApi.createTask.mockResolvedValue({
-        id: "new-1",
-        title: "New task",
+        id: 'new-1',
+        title: 'New task',
         completed: false,
       });
 
-      render();
+      render(<TaskList />);
 
       // Wait for loading to complete
       await screen.findByText(/no tasks yet/i);
 
       // Fill out form and submit
-      await user.type(screen.getByLabelText(/task title/i), "New task");
-      await user.click(screen.getByRole("button", { name: /add task/i }));
+      await user.type(screen.getByLabelText(/task title/i), 'New task');
+      await user.click(screen.getByRole('button', { name: /add task/i }));
 
       // Verify the new task appears
-      expect(await screen.findByText("New task")).toBeInTheDocument();
+      expect(await screen.findByText('New task')).toBeInTheDocument();
 
       // Verify API was called correctly
-      expect(mockedTaskApi.createTask).toHaveBeenCalledWith({
-        title: "New task",
-      });
+      expect(mockedTaskApi.createTask).toHaveBeenCalledWith({ title: 'New task' });
     });
   });
 
-  describe("toggling tasks", () => {
-    it("toggles task completion status", async () => {
+  describe('toggling tasks', () => {
+    it('toggles task completion status', async () => {
       const user = userEvent.setup();
 
       mockedTaskApi.fetchTasks.mockResolvedValue([
-        { id: "1", title: "Test task", completed: false },
+        { id: '1', title: 'Test task', completed: false },
       ]);
       mockedTaskApi.toggleTask.mockResolvedValue({
-        id: "1",
-        title: "Test task",
+        id: '1',
+        title: 'Test task',
         completed: true,
       });
 
-      render();
+      render(<TaskList />);
 
       // Wait for task to load
-      await screen.findByText("Test task");
+      await screen.findByText('Test task');
 
       // Click the checkbox
-      const checkbox = screen.getByRole("checkbox");
+      const checkbox = screen.getByRole('checkbox');
       await user.click(checkbox);
 
       // Verify API was called
-      expect(mockedTaskApi.toggleTask).toHaveBeenCalledWith("1", true);
+      expect(mockedTaskApi.toggleTask).toHaveBeenCalledWith('1', true);
 
       // Verify checkbox is now checked
       await waitFor(() => {
@@ -819,29 +859,29 @@ describe("TaskList", () => {
     });
   });
 
-  describe("deleting tasks", () => {
-    it("removes task when delete button is clicked", async () => {
+  describe('deleting tasks', () => {
+    it('removes task when delete button is clicked', async () => {
       const user = userEvent.setup();
 
       mockedTaskApi.fetchTasks.mockResolvedValue([
-        { id: "1", title: "Task to delete", completed: false },
+        { id: '1', title: 'Task to delete', completed: false },
       ]);
       mockedTaskApi.deleteTask.mockResolvedValue();
 
-      render();
+      render(<TaskList />);
 
       // Wait for task to load
-      await screen.findByText("Task to delete");
+      await screen.findByText('Task to delete');
 
       // Click delete button
-      await user.click(screen.getByRole("button", { name: /delete/i }));
+      await user.click(screen.getByRole('button', { name: /delete/i }));
 
       // Verify API was called
-      expect(mockedTaskApi.deleteTask).toHaveBeenCalledWith("1");
+      expect(mockedTaskApi.deleteTask).toHaveBeenCalledWith('1');
 
       // Verify task is removed from the list
       await waitFor(() => {
-        expect(screen.queryByText("Task to delete")).not.toBeInTheDocument();
+        expect(screen.queryByText('Task to delete')).not.toBeInTheDocument();
       });
     });
   });
@@ -876,10 +916,10 @@ Requirements:
 Create `src/__tests__/taskApi.test.ts`:
 
 ```typescript
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { fetchTasks, createTask, deleteTask, toggleTask } from "../api/taskApi";
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { fetchTasks, createTask, deleteTask, toggleTask } from '../api/taskApi';
 
-describe("taskApi", () => {
+describe('taskApi', () => {
   // Store the original fetch
   const originalFetch = global.fetch;
 
@@ -893,11 +933,11 @@ describe("taskApi", () => {
     global.fetch = originalFetch;
   });
 
-  describe("fetchTasks", () => {
-    it("returns tasks on successful response", async () => {
+  describe('fetchTasks', () => {
+    it('returns tasks on successful response', async () => {
       const mockTasks = [
-        { id: "1", title: "Task 1", completed: false },
-        { id: "2", title: "Task 2", completed: true },
+        { id: '1', title: 'Task 1', completed: false },
+        { id: '2', title: 'Task 2', completed: true },
       ];
 
       vi.mocked(global.fetch).mockResolvedValue({
@@ -908,16 +948,16 @@ describe("taskApi", () => {
       const result = await fetchTasks();
 
       expect(result).toEqual(mockTasks);
-      expect(global.fetch).toHaveBeenCalledWith("/api/tasks");
+      expect(global.fetch).toHaveBeenCalledWith('/api/tasks');
     });
 
-    it("throws error on failed response", async () => {
+    it('throws error on failed response', async () => {
       vi.mocked(global.fetch).mockResolvedValue({
         ok: false,
         status: 500,
       } as Response);
 
-      await expect(fetchTasks()).rejects.toThrow("Failed to fetch tasks");
+      await expect(fetchTasks()).rejects.toThrow('Failed to fetch tasks');
     });
   });
 
