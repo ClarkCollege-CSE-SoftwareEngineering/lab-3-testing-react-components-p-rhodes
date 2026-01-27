@@ -149,4 +149,21 @@ describe('TaskList', () => {
 
   // TODO: Add your own test - test error handling when createTask fails
   // Hint: Use mockRejectedValue and check for the error alert
+
+  describe('tests createTask error handling', () => {
+    it('shows correct error message when createTask fails', async () => {
+      const user=userEvent.setup();
+
+      mockedTaskApi.fetchTasks.mockResolvedValue([]);
+      mockedTaskApi.createTask.mockRejectedValue(new Error('Failed to create task'));
+
+      render(<TaskList />);
+
+      await screen.findByText(/no tasks yet/i);
+      await user.type(screen.getByLabelText(/task title/i), 'New Task');
+      await user.click(screen.getByRole('button', { name: /add task/i }));
+      
+      expect(await screen.findByRole('alert')).toHaveTextContent(/failed to add task/i);
+    });
+  });
 });
