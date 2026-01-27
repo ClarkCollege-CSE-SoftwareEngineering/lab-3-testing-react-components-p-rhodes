@@ -19,6 +19,10 @@ export async function fetchTasks(): Promise<Task[]> {
 }
 
 export async function createTask(data: CreateTaskData): Promise<Task> {
+  if (data.title.length > 64) {
+    data.title=data.title.slice(0, 64);
+  }
+
   const response = await fetch(API_BASE, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
