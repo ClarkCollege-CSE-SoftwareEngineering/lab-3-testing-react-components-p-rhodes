@@ -29,11 +29,9 @@ export function AddTaskForm({ onAdd }: AddTaskFormProps) {
   };
 
   return (
-
-
-    <form onSubmit={handleSubmit} aria-label="Add Task Form">
-      <label>
-        Task Title
+    <form onSubmit={handleSubmit} aria-label="Add new task">
+      <div style={{ marginBottom: '8px' }}>
+        <label htmlFor="task-title">Task Title</label>
         <input
           type="text"
           id="task-title"
@@ -54,20 +52,29 @@ export function AddTaskForm({ onAdd }: AddTaskFormProps) {
             borderRadius: '4px',
           }}
         />
-
+      </div>
       {error && (
-
-        <p id='task-error' role='alert'>
+        <p
+          id="task-error"
+          role="alert"
+          style={{ color: '#dc3545', margin: '0 0 8px 0' }}
+        >
           {error}
         </p>
-
       )}
-
+      <button
+        type="submit"
+        style={{
+          background: '#007bff',
+          color: 'white',
+          border: 'none',
+          padding: '8px 16px',
+          borderRadius: '4px',
+          cursor: 'pointer',
+        }}
+      >
         Add Task
-        
-        </label>
-      </form>
-
-
+      </button>
+    </form>
   );
 }
